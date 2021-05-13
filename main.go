@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 type problem struct {
@@ -18,6 +19,8 @@ func main() {
 
 	//Reading the csv filename using flags
 	csvFileName := flag.String("csv", "problems.csv", "A csv fle containing the quiz in <question,answer> format")
+	//Reading time duration in seconds
+	timeLimit := flag.Int("duration", 30, "Time duration of the quiz in seconds")
 	flag.Parse()
 
 	//Opening the file
@@ -36,19 +39,37 @@ func main() {
 	//Getting the problems
 	problems := getProblems(lines)
 
-	//Printing each problem
+	timer := time.After(time.Duration(*timeLimit) * time.Second)
+
+	//Timed Q&A
 	correct := 0
 	for i, p := range problems {
-		fmt.Printf("Problem #%d: %s = \n", i+1, p.q)
-		var ans string
-		fmt.Scanf("%s\n", &ans)
-		if ans == p.a {
-			correct++
+
+		//channel to get answer
+		ansChan := make(chan string)
+		//Printing the problem
+		fmt.Printf("Problem #%d: %s = ", i+1, p.q)
+		//go routine for reading the answers
+		go func() {
+			var ans string
+			fmt.Scanf("%s\n", &ans)
+			ansChan <- ans
+		}()
+
+		//Waiting for timer channel to respond
+		select {
+		case <-timer:
+			//Final Result
+			fmt.Printf("\nYou scored %d out of %d!\n", correct, len(problems))
+			return
+		case answer := <-ansChan:
+			if answer == p.a {
+				correct++
+			}
 		}
 	}
-	//Final Result
+	//If user ompletes the quiz  before  time runs out
 	fmt.Printf("You scored %d out of %d!\n", correct, len(problems))
-
 }
 
 //getProblems parses the the file data into a list of problem struct
