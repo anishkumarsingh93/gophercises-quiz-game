@@ -63,7 +63,7 @@ func main() {
 			fmt.Printf("\nYou scored %d out of %d!\n", correct, len(problems))
 			return
 		case answer := <-ansChan:
-			if answer == p.a {
+			if strings.EqualFold(strings.TrimSpace(answer), p.a) { //Removing spaces and ignore cases
 				correct++
 			}
 		}
